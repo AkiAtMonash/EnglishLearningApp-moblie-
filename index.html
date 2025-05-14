@@ -1,4 +1,3 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -44,33 +43,31 @@
     /* コンテンツ */
     .data { flex: 1; display: flex; flex-direction: column; width: 100%; }
     .answer-container {
-      width: 100%;
+      flex: 2;
       background: #f9f9f9;
       border-bottom: 1px solid #ddd;
       padding: 0.5rem;
       font-size: 1.1rem;
       line-height: 1.5;
       overflow-y: auto;
-      height: 30vh; /* 固定高＋スクロール */
     }
 
     /* スライドショー */
     .slideshow-container {
+      flex: 1;
       position: relative;
       width: 100%;
-      height: 30vh;
       background: #000;
       overflow: hidden;
     }
     .slides { position: relative; width: 100%; height: 100%; }
     .slide {
-      position: absolute; top: 0; left: 0;
-      width: 100%; height: 100%;
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
       opacity: 0; transition: opacity 0.3s ease;
-      display: flex; align-items: center; justify-content: center;
     }
     .slide.active { opacity: 1; }
-    .slide img, .slide video { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .slide img, .slide video { width: 100%; height: auto; object-fit: contain; }
     .prev, .next {
       position: absolute; top: 50%;
       transform: translateY(-50%);
@@ -88,7 +85,7 @@
       background: #fff; border-top: 1px solid #ddd;
     }
     .bottom a, .bottom span {
-      display: block; flex: 1; text-align: center;
+      flex: 1; text-align: center;
       padding: 0.5rem 0; font-size: 0.9rem;
     }
     .bottom a { color: #007acc; text-decoration: none; }
@@ -125,20 +122,17 @@
   </div>
 
   <script>
-    /* Service Worker登録 */
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/service-worker.js')
           .catch(err => console.log('SW登録失敗:', err));
       });
     }
-
     let currentData = null, slideIndex = 0;
     marked.setOptions({ breaks: true, gfm: true });
     const slidesContainer = document.getElementById('slides');
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
-
     function showSlide(n) {
       const slides = slidesContainer.querySelectorAll('.slide');
       if (!slides.length) return;
@@ -155,14 +149,12 @@
       const c = slidesContainer.querySelector('.slide.active');
       if (c && c.tagName==='VIDEO') c.play().catch(()=>{});
     });
-
     async function preloadMedia(list) {
       list.forEach(m => {
         if (m.type==='img') { const i=new Image(); i.src=m.url; }
         else { const v=document.createElement('video'); v.src=m.url; v.preload='auto'; }
       });
     }
-
     document.getElementById('fetchQuestionButton').addEventListener('click', async () => {
       try {
         const res = await fetch('/get-random-row');
@@ -176,49 +168,4 @@
         const media = (data.image||[]).map(f => ({type:'img',url:f.url}));
         preloadMedia(media);
         media.forEach(m => {
-          const el = document.createElement('img');
-          el.src = m.url; el.className = 'slide';
-          slidesContainer.appendChild(el);
-        });
-        slideIndex = 0; showSlide(0);
-        document.getElementById('fetchAnswerButton').disabled = false;
-        document.getElementById('rememberButton').disabled = true;
-      } catch (e) { alert(e.message); }
-    });
-
-    document.getElementById('fetchAnswerButton').addEventListener('click', () => {
-      if (!currentData) return alert('先に問題取得');
-      document.getElementById('text').innerHTML = `解答:<br>${marked.parse(currentData.text||'')}`;
-      slidesContainer.innerHTML = '';
-      const media = [
-        ...(currentData.image||[]).map(f => ({type:'img',url:f.url})),
-        ...(currentData.video||[]).map(f => ({type:'video',url:f.url}))
-      ];
-      preloadMedia(media);
-      media.forEach(m => {
-        const el = m.type==='img'
-          ? document.createElement('img')
-          : Object.assign(document.createElement('video'), {
-              controls:true, playsInline:true, controlsList:'nodownload'
-            });
-        el.src = m.url; el.className = 'slide';
-        slidesContainer.appendChild(el);
-      });
-      slideIndex = 0; showSlide(0);
-      document.getElementById('rememberButton').disabled = false;
-    });
-
-    document.getElementById('rememberButton').addEventListener('click', async () => {
-      if (!currentData?.id) return alert('先に問題取得');
-      const res = await fetch('/update-learning-count', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ pageId: currentData.id })
-      });
-      const r = await res.json();
-      if (r.success) document.getElementById('learningCount').textContent = `学習回数: ${r.newCount}`;
-      document.getElementById('rememberButton').disabled = true;
-    });
-  </script>
-</body>
-</html>
+          const el = document.createElement('img'); el.src = m.url; el.className = 'slide';
