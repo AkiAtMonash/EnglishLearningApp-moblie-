@@ -1,0 +1,224 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>英単語クイズサイト</title>
+  <link rel="manifest" href="/manifest.json">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
+  <style>
+    /* リセット */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body { display: flex; flex-direction: column; font-family: Arial, sans-serif; background: #f0f8ff; color: #333; }
+
+    /* ヘッダー */
+    .header { display: flex; width: 100%; }
+    .buttons { display: flex; width: 100%; }
+    .buttons button {
+      flex: 1;
+      font-size: 1.2rem;
+      padding: 1rem 0;
+      color: #fff;
+      background: #007acc;
+      border: none;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .buttons button:hover:not(:disabled) { background: #00509e; }
+    .buttons button:disabled { background: #c0c0c0; cursor: not-allowed; }
+    .buttons .remember-button { background: #28a745; }
+    .buttons .remember-button:hover:not(:disabled) { background: #218838; }
+
+    /* 問題 */
+    #name {
+      width: 100%;
+      background: #fff;
+      text-align: center;
+      font-size: 1rem;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #ddd;
+    }
+
+    /* コンテンツ */
+    .data { flex: 1; display: flex; flex-direction: column; width: 100%; }
+    .answer-container {
+      width: 100%;
+      background: #f9f9f9;
+      border-bottom: 1px solid #ddd;
+      padding: 0.5rem;
+      font-size: 1.1rem;
+      line-height: 1.5;
+      overflow-y: auto;
+      height: 30vh; /* 固定高＋スクロール */
+    }
+
+    /* スライドショー */
+    .slideshow-container {
+      position: relative;
+      width: 100%;
+      height: 30vh;
+      background: #000;
+      overflow: hidden;
+    }
+    .slides { position: relative; width: 100%; height: 100%; }
+    .slide {
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      opacity: 0; transition: opacity 0.3s ease;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .slide.active { opacity: 1; }
+    .slide img, .slide video { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .prev, .next {
+      position: absolute; top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0,0,0,0.5); color: #fff;
+      border: none; padding: 0.5rem; font-size: 1.5rem;
+      cursor: pointer;
+    }
+    .prev { left: 0; }
+    .next { right: 0; }
+
+    /* フッター */
+    .bottom {
+      display: flex; justify-content: space-between;
+      align-items: center; width: 100%;
+      background: #fff; border-top: 1px solid #ddd;
+    }
+    .bottom a, .bottom span {
+      display: block; flex: 1; text-align: center;
+      padding: 0.5rem 0; font-size: 0.9rem;
+    }
+    .bottom a { color: #007acc; text-decoration: none; }
+    .bottom a:hover { text-decoration: underline; }
+
+    /* ダークモード */
+    @media (prefers-color-scheme: dark) {
+      body { background: #1A1A1A; color: #E1E1E1; }
+      #name, .bottom { background: #222; border-color: #444; }
+      .answer-container { background: rgba(255,255,255,0.05); border-color: #444; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="buttons">
+      <button id="fetchQuestionButton">問題</button>
+      <button id="fetchAnswerButton" disabled>解答</button>
+      <button id="rememberButton" class="remember-button" disabled>覚えた！</button>
+    </div>
+  </div>
+  <p id="name">問題: </p>
+  <div class="data">
+    <div id="text" class="answer-container">解答: </div>
+    <div class="slideshow-container">
+      <div class="slides" id="slides"></div>
+      <button class="prev" id="prevBtn">&#10094;</button>
+      <button class="next" id="nextBtn">&#10095;</button>
+    </div>
+  </div>
+  <div class="bottom">
+    <a id="url" href="#" target="_blank">Notionで開く</a>
+    <span id="learningCount">学習回数: 0</span>
+  </div>
+
+  <script>
+    /* Service Worker登録 */
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+          .catch(err => console.log('SW登録失敗:', err));
+      });
+    }
+
+    let currentData = null, slideIndex = 0;
+    marked.setOptions({ breaks: true, gfm: true });
+    const slidesContainer = document.getElementById('slides');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    function showSlide(n) {
+      const slides = slidesContainer.querySelectorAll('.slide');
+      if (!slides.length) return;
+      slideIndex = (n + slides.length) % slides.length;
+      slides.forEach((s,i) => s.classList.toggle('active', i===slideIndex));
+    }
+    prevBtn.addEventListener('click', () => {
+      showSlide(slideIndex-1);
+      const c = slidesContainer.querySelector('.slide.active');
+      if (c && c.tagName==='VIDEO') c.play().catch(()=>{});
+    });
+    nextBtn.addEventListener('click', () => {
+      showSlide(slideIndex+1);
+      const c = slidesContainer.querySelector('.slide.active');
+      if (c && c.tagName==='VIDEO') c.play().catch(()=>{});
+    });
+
+    async function preloadMedia(list) {
+      list.forEach(m => {
+        if (m.type==='img') { const i=new Image(); i.src=m.url; }
+        else { const v=document.createElement('video'); v.src=m.url; v.preload='auto'; }
+      });
+    }
+
+    document.getElementById('fetchQuestionButton').addEventListener('click', async () => {
+      try {
+        const res = await fetch('/get-random-row');
+        if (!res.ok) throw new Error('データ取得失敗');
+        const data = await res.json(); currentData = data;
+        document.getElementById('name').textContent = `問題: ${data.name}`;
+        document.getElementById('text').innerHTML = '解答:';
+        document.getElementById('learningCount').textContent = `学習回数: ${data.learningCount||0}`;
+        const link = document.getElementById('url'); link.href = data.url;
+        slidesContainer.innerHTML = '';
+        const media = (data.image||[]).map(f => ({type:'img',url:f.url}));
+        preloadMedia(media);
+        media.forEach(m => {
+          const el = document.createElement('img');
+          el.src = m.url; el.className = 'slide';
+          slidesContainer.appendChild(el);
+        });
+        slideIndex = 0; showSlide(0);
+        document.getElementById('fetchAnswerButton').disabled = false;
+        document.getElementById('rememberButton').disabled = true;
+      } catch (e) { alert(e.message); }
+    });
+
+    document.getElementById('fetchAnswerButton').addEventListener('click', () => {
+      if (!currentData) return alert('先に問題取得');
+      document.getElementById('text').innerHTML = `解答:<br>${marked.parse(currentData.text||'')}`;
+      slidesContainer.innerHTML = '';
+      const media = [
+        ...(currentData.image||[]).map(f => ({type:'img',url:f.url})),
+        ...(currentData.video||[]).map(f => ({type:'video',url:f.url}))
+      ];
+      preloadMedia(media);
+      media.forEach(m => {
+        const el = m.type==='img'
+          ? document.createElement('img')
+          : Object.assign(document.createElement('video'), {
+              controls:true, playsInline:true, controlsList:'nodownload'
+            });
+        el.src = m.url; el.className = 'slide';
+        slidesContainer.appendChild(el);
+      });
+      slideIndex = 0; showSlide(0);
+      document.getElementById('rememberButton').disabled = false;
+    });
+
+    document.getElementById('rememberButton').addEventListener('click', async () => {
+      if (!currentData?.id) return alert('先に問題取得');
+      const res = await fetch('/update-learning-count', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ pageId: currentData.id })
+      });
+      const r = await res.json();
+      if (r.success) document.getElementById('learningCount').textContent = `学習回数: ${r.newCount}`;
+      document.getElementById('rememberButton').disabled = true;
+    });
+  </script>
+</body>
+</html>
