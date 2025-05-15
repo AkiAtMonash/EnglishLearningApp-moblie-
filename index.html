@@ -1,4 +1,3 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -13,24 +12,6 @@
     html, body { height: 100%; }
     body { display: flex; flex-direction: column; font-family: Arial, sans-serif; background: #f0f8ff; color: #333; }
 
-    /* ヘッダー */
-    .header { display: flex; width: 100%; }
-    .buttons { display: flex; width: 100%; }
-    .buttons button {
-      flex: 1;
-      font-size: 1.2rem;
-      padding: 1rem 0;
-      color: #fff;
-      background: #007acc;
-      border: none;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-    .buttons button:hover:not(:disabled) { background: #00509e; }
-    .buttons button:disabled { background: #c0c0c0; cursor: not-allowed; }
-    .buttons .remember-button { background: #28a745; }
-    .buttons .remember-button:hover:not(:disabled) { background: #218838; }
-
     /* 問題 */
     #name {
       width: 100%;
@@ -42,7 +23,7 @@
     }
 
     /* コンテンツ */
-    .data { flex: 1; display: flex; flex-direction: column; width: 100%; }
+    .data { /* flex: 1; */ display: flex; flex-direction: column; width: 100%; }
     .answer-container {
       width: 100%;
       background: #f9f9f9;
@@ -51,7 +32,7 @@
       font-size: 1.1rem;
       line-height: 1.5;
       overflow-y: auto;
-      height: 30vh; /* 固定高＋スクロール */
+      height: 30vh;
     }
 
     /* スライドショー */
@@ -94,6 +75,26 @@
     .bottom a { color: #007acc; text-decoration: none; }
     .bottom a:hover { text-decoration: underline; }
 
+    /* 操作ボタン */
+    .buttons {
+      display: flex;
+      width: 100%;
+    }
+    .buttons button {
+      flex: 1;
+      font-size: 1.2rem;
+      padding: 1rem 0;
+      color: #fff;
+      background: #007acc;
+      border: none;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .buttons button:hover:not(:disabled) { background: #00509e; }
+    .buttons button:disabled { background: #c0c0c0; cursor: not-allowed; }
+    .buttons .remember-button { background: #28a745; }
+    .buttons .remember-button:hover:not(:disabled) { background: #218838; }
+
     /* ダークモード */
     @media (prefers-color-scheme: dark) {
       body { background: #1A1A1A; color: #E1E1E1; }
@@ -103,13 +104,6 @@
   </style>
 </head>
 <body>
-  <div class="header">
-    <div class="buttons">
-      <button id="fetchQuestionButton">問題</button>
-      <button id="fetchAnswerButton" disabled>解答</button>
-      <button id="rememberButton" class="remember-button" disabled>覚えた！</button>
-    </div>
-  </div>
   <p id="name">問題: </p>
   <div class="data">
     <div id="text" class="answer-container">解答: </div>
@@ -120,12 +114,17 @@
     </div>
   </div>
   <div class="bottom">
-    <a id="url" href="#" target="_blank">Notionで開く</a>
+    <a id="url" href="#" target="_blank">Notionで確認</a>
     <span id="learningCount">学習回数: 0</span>
+  </div>
+  <div class="buttons">
+    <button id="rememberButton" class="remember-button" disabled>覚えた！</button>
+    <button id="fetchAnswerButton" disabled>解答</button>
+    <button id="fetchQuestionButton">問題</button>
   </div>
 
   <script>
-    /* Service Worker登録 */
+    // Service Worker登録
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/service-worker.js')
