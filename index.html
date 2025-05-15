@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>英単語クイズサイト</title>
 
   <!-- PWA マニフェスト -->
@@ -19,7 +19,15 @@
     /* リセット */
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; }
-    body { display: flex; flex-direction: column; font-family: Arial, sans-serif; background: #f0f8ff; color: #333; }
+    body {
+      display: flex;
+      flex-direction: column;
+      font-family: Arial, sans-serif;
+      background: #f0f8ff;
+      color: #333;
+      /* iOS セーフエリア下部を埋める */
+      padding-bottom: env(safe-area-inset-bottom);
+    }
 
     /* 問題 */
     #name {
@@ -32,7 +40,7 @@
     }
 
     /* コンテンツ */
-    .data { /* flex: 1; */ display: flex; flex-direction: column; width: 100%; }
+    .data { display: flex; flex-direction: column; width: 100%; }
     .answer-container {
       width: 100%;
       background: #f9f9f9;
@@ -54,18 +62,28 @@
     }
     .slides { position: relative; width: 100%; height: 100%; }
     .slide {
-      position: absolute; top: 0; left: 0;
-      width: 100%; height: 100%;
-      opacity: 0; transition: opacity 0.3s ease;
-      display: flex; align-items: center; justify-content: center;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .slide.active { opacity: 1; }
     .slide img, .slide video { max-width: 100%; max-height: 100%; object-fit: contain; }
     .prev, .next {
-      position: absolute; top: 50%;
+      position: absolute;
+      top: 50%;
       transform: translateY(-50%);
-      background: rgba(0,0,0,0.5); color: #fff;
-      border: none; padding: 0.5rem; font-size: 1.5rem;
+      background: rgba(0,0,0,0.5);
+      color: #fff;
+      border: none;
+      padding: 0.5rem;
+      font-size: 1.5rem;
       cursor: pointer;
     }
     .prev { left: 0; }
@@ -73,13 +91,21 @@
 
     /* フッター */
     .bottom {
-      display: flex; justify-content: space-between;
-      align-items: center; width: 100%;
-      background: #fff; border-top: 1px solid #ddd;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      background: #fff;
+      border-top: 1px solid #ddd;
+      /* セーフエリア下部を確保 */
+      padding-bottom: env(safe-area-inset-bottom);
     }
     .bottom a, .bottom span {
-      display: block; flex: 1; text-align: center;
-      padding: 0.5rem 0; font-size: 0.9rem;
+      display: block;
+      flex: 1;
+      text-align: center;
+      padding: 0.5rem 0;
+      font-size: 0.9rem;
     }
     .bottom a { color: #007acc; text-decoration: none; }
     .bottom a:hover { text-decoration: underline; }
@@ -88,6 +114,8 @@
     .buttons {
       display: flex;
       width: 100%;
+      /* セーフエリア下部を確保 */
+      padding-bottom: env(safe-area-inset-bottom);
     }
     .buttons button {
       flex: 1;
@@ -131,7 +159,6 @@
     <button id="fetchAnswerButton" disabled>解答</button>
     <button id="fetchQuestionButton">問題</button>
   </div>
-
   <script>
     // Service Worker登録
     if ('serviceWorker' in navigator) {
