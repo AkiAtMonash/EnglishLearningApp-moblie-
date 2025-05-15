@@ -31,6 +31,7 @@
 
     /* 問題表示 */
     #name {
+      flex: none;
       width: 100%;
       background: #fff;
       text-align: center;
@@ -39,17 +40,17 @@
       border-bottom: 1px solid #ddd;
     }
 
-    /* コンテンツ領域：回答＋スライダー */
+    /* メインコンテンツ */
     .data {
+      flex: 1;
       display: flex;
       flex-direction: column;
-      flex: 1; /* 残り領域を占有 */
       width: 100%;
     }
+    /* 解答欄：残り領域を占有しつつ内部スクロール */
     .answer-container {
-      flex: 1; /* 可変領域を占有 */
+      flex: 1;
       overflow-y: auto;
-      width: 100%;
       background: #f9f9f9;
       border-bottom: 1px solid #ddd;
       padding: 0.5rem;
@@ -57,7 +58,7 @@
       line-height: 1.5;
     }
 
-    /* スライドショー */
+    /* スライドショー：固定高さ */
     .slideshow-container {
       flex: none;
       position: relative;
@@ -85,25 +86,30 @@
     .prev { left: 0; }
     .next { right: 0; }
 
-    /* フッター */
+    /* フッター情報 */
     .bottom {
-      display: flex; justify-content: space-between;
-      align-items: center; width: 100%;
-      background: #fff; border-top: 1px solid #ddd;
-      padding-bottom: env(safe-area-inset-bottom);
+      flex: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      background: #fff;
+      border-top: 1px solid #ddd;
+      padding: 0.5rem 0;
     }
     .bottom a, .bottom span {
-      flex: 1; text-align: center;
-      padding: 0.5rem 0; font-size: 0.9rem;
+      flex: 1;
+      text-align: center;
+      font-size: 0.9rem;
     }
     .bottom a { color: #007acc; text-decoration: none; }
     .bottom a:hover { text-decoration: underline; }
 
     /* 操作ボタン */
     .buttons {
+      flex: none;
       display: flex;
       width: 100%;
-      padding-bottom: env(safe-area-inset-bottom);
     }
     .buttons button {
       flex: 1;
