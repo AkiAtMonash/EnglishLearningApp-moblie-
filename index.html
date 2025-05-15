@@ -43,11 +43,12 @@
     .data {
       display: flex;
       flex-direction: column;
+      flex: 1; /* 残り領域を占有 */
       width: 100%;
     }
     .answer-container {
-      height: 30vh;          /* 固定高さ */
-      overflow-y: auto;      /* 内部スクロール */
+      flex: 1; /* 可変領域を占有 */
+      overflow-y: auto;
       width: 100%;
       background: #f9f9f9;
       border-bottom: 1px solid #ddd;
