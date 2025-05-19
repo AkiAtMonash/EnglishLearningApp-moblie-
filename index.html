@@ -46,16 +46,29 @@
       display: flex;
       flex-direction: column;
       width: 100%;
+      min-height: 0; /* 追加: 子要素のスクロールを有効にする */
     }
     /* 解答欄：残り領域を占有しつつ内部スクロール */
     .answer-container {
       flex: 1;
       overflow-y: auto;
-      background: #f9f9f9;
-      border-bottom: 1px solid #ddd;
       padding: 0.5rem;
       font-size: 1.1rem;
       line-height: 1.5;
+      background: #f9f9f9;
+      border-bottom: 1px solid #ddd;
+      /* 任意で高さ制限設定:
+      max-height: 40vh;
+      */
+      /* Optional: 滑らかなスクロール */
+      scroll-behavior: smooth;
+    }
+
+    /* カスタムスクロールバー */
+    .answer-container::-webkit-scrollbar { width: 8px; }
+    .answer-container::-webkit-scrollbar-thumb {
+      background: rgba(0,0,0,0.2);
+      border-radius: 4px;
     }
 
     /* スライドショー：固定高さ */
