@@ -18,28 +18,71 @@ app.use(express.json());
 const notion = new Client({ auth: process.env.NOTION_API_KEY });
 const databaseId = process.env.NOTION_DATABASE_ID;
 
-// GET /get-random-row
-app.get("/get-random-row", async (req, res) => {
-  try {
+// キャッシュ設定
+let cachedPages = [];
+let lastCacheTime = 0;
+const CACHE_DURATION = 10 * 60 * 1000; // 10分間キャッシュ
+
+// 全てのページを取得する関数（ページネーション対応）
+async function getAllPages() {
+  let allPages = [];
+  let hasMore = true;
+  let startCursor = undefined;
+
+  while (hasMore) {
     const response = await notion.databases.query({
       database_id: databaseId,
       filter: { property: "タグ", multi_select: { contains: "English" } },
-      sorts: [{ property: "learningCount", direction: "ascending" }]
+      sorts: [{ property: "learningCount", direction: "ascending" }],
+      start_cursor: startCursor,
+      page_size: 100
     });
+
+    allPages = allPages.concat(response.results);
+    hasMore = response.has_more;
+    startCursor = response.next_cursor;
+  }
+
+  return allPages;
+}
+
+// キャッシュ付きページ取得
+async function getCachedPages() {
+  const now = Date.now();
+  
+  // キャッシュが有効な場合はキャッシュを返す
+  if (cachedPages.length > 0 && (now - lastCacheTime) < CACHE_DURATION) {
+    return cachedPages;
+  }
+  
+  // キャッシュが無効または古い場合は新しく取得
+  console.log('Fetching fresh data from Notion...');
+  cachedPages = await getAllPages();
+  lastCacheTime = now;
+  console.log(`Cached ${cachedPages.length} pages`);
+  
+  return cachedPages;
+}
+
+// GET /get-random-row
+app.get("/get-random-row", async (req, res) => {
+  try {
+    // キャッシュ付きで全てのページを取得
+    const allPages = await getCachedPages();
     
-    if (!response.results.length) {
+    if (!allPages.length) {
       return res.status(404).json({ message: "No data" });
     }
 
     // 重み付きランダム選択
-    const weighted = response.results.map(r => ({
+    const weighted = allPages.map(r => ({
       r, 
       weight: Math.exp(-0.1 * (r.properties.learningCount?.number || 0))
     }));
     
     const total = weighted.reduce((s, w) => s + w.weight, 0);
     let rnd = Math.random() * total;
-    const sel = weighted.find(w => (rnd -= w.weight) <= 0)?.r || response.results[0];
+    const sel = weighted.find(w => (rnd -= w.weight) <= 0)?.r || allPages[0];
 
     const p = sel.properties;
     res.json({
@@ -69,11 +112,27 @@ app.post("/update-learning-count", async (req, res) => {
       properties: { learningCount: { number: cur + 1 } }
     });
     
+    // キャッシュ内の該当ページも更新
+    const cachedPageIndex = cachedPages.findIndex(p => p.id === pageId);
+    if (cachedPageIndex !== -1) {
+      cachedPages[cachedPageIndex].properties.learningCount.number = cur + 1;
+    }
+    
     res.json({ success: true, newCount: cur + 1 });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, error: err.message });
   }
+});
+
+// GET /cache-stats (デバッグ用)
+app.get("/cache-stats", (req, res) => {
+  res.json({
+    totalPages: cachedPages.length,
+    lastCacheTime: new Date(lastCacheTime).toISOString(),
+    cacheAge: Date.now() - lastCacheTime,
+    isValid: (Date.now() - lastCacheTime) < CACHE_DURATION
+  });
 });
 
 // 起動
