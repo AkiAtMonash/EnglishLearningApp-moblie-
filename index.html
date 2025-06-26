@@ -194,8 +194,19 @@
       slides.forEach((s,i) => s.classList.toggle('active', i===slideIndex));
     }
 
-    document.getElementById('prevBtn').addEventListener('click', () => showSlide(slideIndex-1));
-    document.getElementById('nextBtn').addEventListener('click', () => showSlide(slideIndex+1));
+    document.getElementById('prevBtn').addEventListener('click', () => {
+      showSlide(slideIndex-1);
+      // アクティブなスライドが動画の場合は再生
+      const activeSlide = slidesContainer.querySelector('.slide.active video');
+      if (activeSlide) activeSlide.play().catch(() => {});
+    });
+    
+    document.getElementById('nextBtn').addEventListener('click', () => {
+      showSlide(slideIndex+1);
+      // アクティブなスライドが動画の場合は再生
+      const activeSlide = slidesContainer.querySelector('.slide.active video');
+      if (activeSlide) activeSlide.play().catch(() => {});
+    });
 
     function createSlides(media) {
       slidesContainer.innerHTML = '';
