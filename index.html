@@ -20,7 +20,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { 
       height: 100%; 
-      overflow-x: hidden; /* 横スクロール防止 */
+      overflow-x: hidden;
     }
     body {
       display: flex;
@@ -29,8 +29,7 @@
       background: #f0f8ff;
       color: #333;
       padding-bottom: env(safe-area-inset-bottom);
-      margin: 0;
-      width: 100vw; /* 画面幅に固定 */
+      width: 100vw;
     }
 
     /* 問題表示 */
@@ -50,73 +49,36 @@
       display: flex;
       flex-direction: column;
       width: 100%;
-      min-height: 0; /* 追加: 子要素のスクロールを有効にする */
+      min-height: 0;
     }
-    /* 解答欄：残り領域を占有しつつ内部スクロール */
+
+    /* 解答欄 */
     .answer-container {
       flex: 1;
       overflow-y: auto;
-      overflow-x: hidden; /* 横スクロール防止 */
+      overflow-x: hidden;
       padding: 0.5rem;
       font-size: 1.1rem;
       line-height: 1.5;
       background: #f9f9f9;
       border-bottom: 1px solid #ddd;
-      width: 100%; /* 幅を明示的に指定 */
-      /* Optional: 滑らかなスクロール */
-      scroll-behavior: smooth;
-      /* 改行・空白をそのまま表示しつつ折り返しも有効 */
+      width: 100%;
       white-space: pre-wrap;
-      word-wrap: break-word; /* 長い単語も折り返し */
-      word-break: break-word; /* より強制的な折り返し */
+      word-wrap: break-word;
     }
 
-    /* Markdownコンテンツの横スクロール防止 */
     .answer-container * {
       max-width: 100% !important;
-      overflow-wrap: break-word;
       word-wrap: break-word;
-      word-break: break-word;
     }
 
-    /* テーブルの横スクロール対応 */
-    .answer-container table {
-      width: 100%;
-      table-layout: auto;
-      border-collapse: collapse;
-    }
-
-    .answer-container th,
-    .answer-container td {
-      padding: 0.25rem;
-      border: 1px solid #ddd;
-      font-size: 0.9rem;
-      word-break: break-word;
-    }
-
-    /* コードブロックの横スクロール対応 */
-    .answer-container pre,
-    .answer-container code {
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      overflow-x: auto;
-      max-width: 100%;
-    }
-
-    /* 画像の横スクロール防止 */
-    .answer-container img {
-      max-width: 100% !important;
-      height: auto !important;
-    }
-
-    /* カスタムスクロールバー */
     .answer-container::-webkit-scrollbar { width: 8px; }
     .answer-container::-webkit-scrollbar-thumb {
       background: rgba(0,0,0,0.2);
       border-radius: 4px;
     }
 
-    /* スライドショー：固定高さ */
+    /* スライドショー */
     .slideshow-container {
       flex: none;
       position: relative;
@@ -224,8 +186,6 @@
     let currentData = null, slideIndex = 0;
     marked.setOptions({ breaks: true, gfm: true });
     const slidesContainer = document.getElementById('slides');
-    const prevBtn = document.getElementById('prevBtn');
-    const nextBtn = document.getElementById('nextBtn');
 
     function showSlide(n) {
       const slides = slidesContainer.querySelectorAll('.slide');
@@ -233,78 +193,74 @@
       slideIndex = (n + slides.length) % slides.length;
       slides.forEach((s,i) => s.classList.toggle('active', i===slideIndex));
     }
-    prevBtn.addEventListener('click', () => {
-      showSlide(slideIndex-1);
-      const c = slidesContainer.querySelector('.slide.active');
-      if (c && c.tagName==='VIDEO') c.play().catch(()=>{});
-    });
-    nextBtn.addEventListener('click', () => {
-      showSlide(slideIndex+1);
-      const c = slidesContainer.querySelector('.slide.active');
-      if (c && c.tagName==='VIDEO') c.play().catch(()=>{});
-    });
 
-    async function preloadMedia(list) {
-      list.forEach(m => {
-        if (m.type==='img') { const i=new Image(); i.src=m.url; }
-        else { const v=document.createElement('video'); v.src=m.url; v.preload='auto'; }
+    document.getElementById('prevBtn').addEventListener('click', () => showSlide(slideIndex-1));
+    document.getElementById('nextBtn').addEventListener('click', () => showSlide(slideIndex+1));
+
+    function createSlides(media) {
+      slidesContainer.innerHTML = '';
+      media.forEach(m => {
+        const el = m.type === 'img' 
+          ? document.createElement('img')
+          : Object.assign(document.createElement('video'), {
+              controls: true, playsInline: true, controlsList: 'nodownload'
+            });
+        el.src = m.url;
+        el.className = 'slide';
+        slidesContainer.appendChild(el);
       });
+      slideIndex = 0;
+      showSlide(0);
     }
 
     document.getElementById('fetchQuestionButton').addEventListener('click', async () => {
       try {
         const res = await fetch('/get-random-row');
         if (!res.ok) throw new Error('データ取得失敗');
-        const data = await res.json(); currentData = data;
+        const data = await res.json();
+        currentData = data;
+        
         document.getElementById('name').textContent = `問題: ${data.name}`;
         document.getElementById('text').innerHTML = '解答:';
         document.getElementById('learningCount').textContent = `学習回数: ${data.learningCount||0}`;
-        const link = document.getElementById('url'); link.href = data.url;
-        slidesContainer.innerHTML = '';
+        document.getElementById('url').href = data.url;
+        
         const media = (data.image||[]).map(f => ({type:'img',url:f.url}));
-        preloadMedia(media);
-        media.forEach(m => {
-          const el = document.createElement('img');
-          el.src = m.url; el.className = 'slide';
-          slidesContainer.appendChild(el);
-        });
-        slideIndex = 0; showSlide(0);
+        createSlides(media);
+        
         document.getElementById('fetchAnswerButton').disabled = false;
         document.getElementById('rememberButton').disabled = true;
-      } catch (e) { alert(e.message); }
+      } catch (e) { 
+        alert(e.message); 
+      }
     });
 
     document.getElementById('fetchAnswerButton').addEventListener('click', () => {
       if (!currentData) return alert('先に問題取得');
+      
       document.getElementById('text').innerHTML = `解答:<br>${marked.parse(currentData.text||'')}`;
-      slidesContainer.innerHTML = '';
+      
       const media = [
         ...(currentData.image||[]).map(f => ({type:'img',url:f.url})),
         ...(currentData.video||[]).map(f => ({type:'video',url:f.url}))
       ];
-      preloadMedia(media);
-      media.forEach(m => {
-        const el = m.type==='img'
-          ? document.createElement('img')
-          : Object.assign(document.createElement('video'), {
-              controls:true, playsInline:true, controlsList:'nodownload'
-            });
-        el.src = m.url; el.className = 'slide';
-        slidesContainer.appendChild(el);
-      });
-      slideIndex = 0; showSlide(0);
+      createSlides(media);
+      
       document.getElementById('rememberButton').disabled = false;
     });
 
     document.getElementById('rememberButton').addEventListener('click', async () => {
       if (!currentData?.id) return alert('先に問題取得');
+      
       const res = await fetch('/update-learning-count', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ pageId: currentData.id })
       });
       const r = await res.json();
-      if (r.success) document.getElementById('learningCount').textContent = `学習回数: ${r.newCount}`;
+      if (r.success) {
+        document.getElementById('learningCount').textContent = `学習回数: ${r.newCount}`;
+      }
       document.getElementById('rememberButton').disabled = true;
     });
   </script>
