@@ -192,21 +192,16 @@
       if (!slides.length) return;
       slideIndex = (n + slides.length) % slides.length;
       slides.forEach((s,i) => s.classList.toggle('active', i===slideIndex));
+      
+      // アクティブなスライドが動画の場合は再生
+      const activeSlide = slides[slideIndex];
+      if (activeSlide && activeSlide.tagName === 'VIDEO') {
+        activeSlide.play().catch(() => {});
+      }
     }
 
-    document.getElementById('prevBtn').addEventListener('click', () => {
-      showSlide(slideIndex-1);
-      // アクティブなスライドが動画の場合は再生
-      const activeSlide = slidesContainer.querySelector('.slide.active video');
-      if (activeSlide) activeSlide.play().catch(() => {});
-    });
-    
-    document.getElementById('nextBtn').addEventListener('click', () => {
-      showSlide(slideIndex+1);
-      // アクティブなスライドが動画の場合は再生
-      const activeSlide = slidesContainer.querySelector('.slide.active video');
-      if (activeSlide) activeSlide.play().catch(() => {});
-    });
+    document.getElementById('prevBtn').addEventListener('click', () => showSlide(slideIndex-1));
+    document.getElementById('nextBtn').addEventListener('click', () => showSlide(slideIndex+1));
 
     function createSlides(media) {
       slidesContainer.innerHTML = '';
