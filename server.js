@@ -1,4 +1,3 @@
-// server.js
 const express = require("express");
 const { Client } = require("@notionhq/client");
 const cors = require("cors");
@@ -9,7 +8,7 @@ const app = express();
 // CORS
 app.use(cors({ origin: '*', methods: ['GET','POST'], allowedHeaders: ['Content-Type'] }));
 
-// 静的ファイル（index.html, manifest.json, service-worker.js など）
+// 静的ファイル
 app.use(express.static(path.join(__dirname)));
 
 // JSON パーサー
@@ -27,12 +26,17 @@ app.get("/get-random-row", async (req, res) => {
       filter: { property: "タグ", multi_select: { contains: "English" } },
       sorts: [{ property: "learningCount", direction: "ascending" }]
     });
-    if (!response.results.length) return res.status(404).json({ message: "No data" });
+    
+    if (!response.results.length) {
+      return res.status(404).json({ message: "No data" });
+    }
 
     // 重み付きランダム選択
     const weighted = response.results.map(r => ({
-      r, weight: Math.exp(-0.1 * (r.properties.learningCount?.number || 0))
+      r, 
+      weight: Math.exp(-0.1 * (r.properties.learningCount?.number || 0))
     }));
+    
     const total = weighted.reduce((s, w) => s + w.weight, 0);
     let rnd = Math.random() * total;
     const sel = weighted.find(w => (rnd -= w.weight) <= 0)?.r || response.results[0];
@@ -59,10 +63,12 @@ app.post("/update-learning-count", async (req, res) => {
     const { pageId } = req.body;
     const page = await notion.pages.retrieve({ page_id: pageId });
     const cur = page.properties.learningCount?.number || 0;
+    
     await notion.pages.update({
       page_id: pageId,
       properties: { learningCount: { number: cur + 1 } }
     });
+    
     res.json({ success: true, newCount: cur + 1 });
   } catch (err) {
     console.error(err);
